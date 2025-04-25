@@ -240,8 +240,6 @@ def sendmsg(BotNo, TargetId, Message,ServerTOKEN):
 # ===== ここから Flask サーバー設定 =====
 from flask import Flask
 
-app = Flask(__name__)
-
 @app.route('/')
 def index():
     return "LINE WORKS Bot is running."
@@ -251,3 +249,24 @@ if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))  # Render が指定するポートを使う
     app.run(host='0.0.0.0', port=port)
 # ===== ここまで追記 =====
+from flask import Flask, request, jsonify  # ← request を忘れずに！
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "LINE WORKS Bot is running."
+
+@app.route('/callback', methods=['POST'])  # ← LINE WORKS からのWebhookを受け取るエンドポイント
+def callback():
+    data = request.json  # POSTされたJSONを取得
+    print("Received data:", data)  # 確認用ログ（Renderのログに出ます）
+
+    # ここでメッセージ本文などを取り出して処理できます
+    try:
+        content = data['content']
+        print("User Message:", content['text'])  # 例：ユーザーが送ったメッセージ本文
+    except Exception as e:
+        print("Error parsing message:", e)
+
+    return "OK"  # LINE WORKSに「正常に受け取ったよ」と返す
