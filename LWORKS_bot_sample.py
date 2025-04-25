@@ -240,6 +240,8 @@ def sendmsg(BotNo, TargetId, Message,ServerTOKEN):
 # ===== ここから Flask サーバー設定 =====
 from flask import Flask
 
+app = Flask(__name__)
+
 @app.route('/')
 def index():
     return "LINE WORKS Bot is running."
