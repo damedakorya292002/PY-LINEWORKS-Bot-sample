@@ -275,3 +275,16 @@ def callback():
         print("❌ エラーが発生しました:", e)
 
     return "OK"  # LINE WORKSに正常受信の応答を返す
+
+# 必要な変数（再掲）
+BOT_NO = 9947082
+DOMAIN_ID = 10203181
+
+# トークン取得
+server_token = gettoken(SERVERID, PRIVKEY)
+
+# ドメイン登録
+response = regbotdomain(BOT_NO, DOMAIN_ID, server_token)
+
+print("✅ ドメイン登録レスポンス:", response.status_code)
+print(response.text)
