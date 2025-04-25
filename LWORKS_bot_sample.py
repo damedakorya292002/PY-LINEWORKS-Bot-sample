@@ -287,3 +287,12 @@ server_token = gettoken(SERVERID, PRIVKEY)
 response = regbotdomain(BOT_NO, DOMAIN_ID, server_token)
 print("✅ ドメイン登録レスポンス:", response.status_code)
 print(response.text)
+
+BOT_NO = "新しいBotのID"
+DOMAIN_ID = "10203181"  # ※ステーションのDomain ID
+
+token = gettoken(SERVERID, PRIVKEY)
+response = regbotdomain(BOT_NO, DOMAIN_ID, token)
+
+print("ドメイン登録:", response.status_code)
+print(response.text)
