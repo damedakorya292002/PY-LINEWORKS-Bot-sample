@@ -261,15 +261,17 @@ def index():
 
 @app.route('/callback', methods=['POST'])  # ← LINE WORKS からのWebhookを受け取るエンドポイント
 def callback():
-    data = request.json  # POSTされたJSONを取得
-    print("Received data:", data)  # 確認用ログ（Renderのログに出ます）
-
-    # ここでメッセージ本文などを取り出して処理できます
+    print("✅ Webhook受信しました")  # 確認用ログ
     try:
-        content = data['content']
-        print("User Message:", content['text'])  # 例：ユーザーが送ったメッセージ本文
-    except Exception as e:
-        print("Error parsing message:", e)
+        data = request.json  # POSTされたJSONを取得
+        print("📦 受信データ:", data)  # JSON全体を表示
 
-    return "OK"  # LINE WORKSに「正常に受け取ったよ」と返す
-どこか修正する必要ある?
+        # contentが存在する場合、メッセージ本文を表示
+        content = data.get('content', {})
+        user_message = content.get('text', '')
+        print("💬 ユーザーのメッセージ:", user_message)
+
+    except Exception as e:
+        print("❌ エラーが発生しました:", e)
+
+    return "OK"  # LINE WORKSに正常受信の応答を返す
