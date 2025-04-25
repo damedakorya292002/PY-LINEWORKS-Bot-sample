@@ -251,7 +251,7 @@ if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))  # Render が指定するポートを使う
     app.run(host='0.0.0.0', port=port)
 # ===== ここまで追記 =====
-from flask import Flask, request, jsonify  # ← request を忘れずに！
+from flask import Flask, request, jsonify  # ← request を忘れずに!
 
 app = Flask(__name__)
 
@@ -272,4 +272,4 @@ def callback():
         print("Error parsing message:", e)
 
     return "OK"  # LINE WORKSに「正常に受け取ったよ」と返す
-どこか修正する必要ある？
+どこか修正する必要ある?
