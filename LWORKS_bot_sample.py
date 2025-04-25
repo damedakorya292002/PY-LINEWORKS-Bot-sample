@@ -3,111 +3,273 @@ import requests
 import jwt
 import cryptography
 from datetime import datetime
-from flask import Flask, request, jsonify
-import os
 
-# テナント情報（あなたの情報に書き換えてください）
+# this file is designed for python3 on mac
+
+#テナント情報
 APIKEY = 'APIKEY'
 SERVER_CKEY = 'SERVER CONSUMER KEY'
 SERVERID = "Server ID(ID 登録タイプの方)"
 PRIVKEY = '認証キーファイルのパス'
-BOT_NO = 'BOT番号'  # 例: 12345
 
-# グローバル変数にトークンを保持（30分有効）
-SERVER_TOKEN = ''
 
-# JWT から server token の生成
-def gettoken(ServerId, PrivateKey):
-    crnttime = int(datetime.now().strftime('%s'))
-    exptime = crnttime + 1800
+#JWT から server token の生成。成功すると token とexpire date を返す。失敗すると 0 を返す。
+def gettoken(ServerId,PrivateKey):
+        # claimset 生成時間及び 終了時間 (30分設定)
+        crnttime = int(datetime.now().strftime('%s'))
+        exptime = crnttime + 1800
 
-    claimset = {
-        "iss": ServerId,
-        "iat": crnttime,
-        "exp": exptime
-    }
+        # claimset
+        claimset = {
+                "iss":ServerId,
+                "iat":crnttime,
+                "exp":exptime
+                }
+        #RSA秘密鍵
+        key = open(PrivateKey).read()
+        #JWT生成
+        lw_jwt = jwt.encode(claimset,key,algorithm='RS256')
 
-    key = open(PrivateKey).read()
-    lw_jwt = jwt.encode(claimset, key, algorithm='RS256')
+        # Token 発行
+        url = 'https://authapi.worksmobile.com/b/' +APIKEY +'/server/token'
+        header = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'charset': 'utf-8'
+                }
+        payload = {
+                'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' : lw_jwt.decode('utf-8')
+                }
+        r = requests.post(url, headers=header, params=payload)
+        if r.status_code == 200:
+                return r.text
+        else:
+                return 0
+#Bot 登録。成功した場合には BotNo を返す
+def regbot(BotName, PhotoURL,Status,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/registerBot/v2'
 
-    url = 'https://authapi.worksmobile.com/b/' + APIKEY + '/server/token'
-    header = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'charset': 'utf-8'
-    }
-    payload = {
-        'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        'assertion': lw_jwt.decode('utf-8') if isinstance(lw_jwt, bytes) else lw_jwt
-    }
-    r = requests.post(url, headers=header, params=payload)
-    if r.status_code == 200:
-        token_data = json.loads(r.text)
-        return token_data['access_token']
-    else:
-        print("Token取得失敗:", r.text)
-        return None
+        header = {
+                'consumerKey': SERVER_CKEY,
+                'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'utf-8'
+                }
 
-# メッセージ送信
-def sendmsg(bot_no, target_id, message, server_token):
-    url = 'https://apis.worksmobile.com/' + APIKEY + '/message/sendMessage/v2'
-    header = {
-        'consumerKey': SERVER_CKEY,
-        'Authorization': 'Bearer ' + server_token,
-        'Content-Type': 'application/json'
-    }
+        payload = {
+                "name" : BotName,
+                "photoUrl": PhotoURL,
+                "status": Status
+                }
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        if r.json()["code"] == 200:
+                return r.json()['botNo']
+        else:
+                print('registration error.')
+                return r.json()
+#Bot 修正。成功した場合には 200 を返す
+def updatebot(BotNo, BotName, PhotoURL,Status,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/updateBot/v2'
 
-    payload = {
-        "botNo": bot_no,
-        "accountId": target_id,
-        "content": {
-            "type": "text",
-            "text": message
+        header = {
+                'consumerKey': SERVER_CKEY,
+                'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'utf-8'
+                }
+
+        payload = {
+                "botNo": BotNo,
+                "name" : BotName,
+                "photoUrl": PhotoURL,
+                "status": Status
+                }
+
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        if r.status_code == 200:
+                if r.json()["code"] == 200:
+                        return r.json()['code']
+                else:
+                        print('registration error.')
+                        return r.json()
+        else:
+                return 0
+#Bot ドメイン登録。成功した場合には 200 を返す
+def regbotdomain(BotNo,domainid,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/registerBotDomain/v2'
+
+        header = {
+                'consumerKey': SERVER_CKEY,
+                'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'utf-8'
         }
-    }
+        payload = {
+                "botNo": BotNo,
+                "domainId": domainid
+                }
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        if r.status_code == 200 :
+                return r
+        else:
+                return 0
+#Bot ドメイン削除。成功した場合には 200 を返す。
+def removebotdomain(BotNo,domainid,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/removeBotDomain/v2'
 
-    r = requests.post(url, headers=header, data=json.dumps(payload))
-    if r.status_code == 200 and r.json().get("code") == 200:
-        print("送信成功:", r.json())
-        return r.json()
-    else:
-        print("送信失敗:", r.text)
-        return None
+        header = {
+                'consumerKey': SERVER_CKEY,
+                'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'utf-8'
+        }
+        payload = {
+                "botNo": BotNo,
+                "domainId": domainid
+                }
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        return r
+#Bot リストの取得。成功した場合にはjsonで Bot list を返す
+def getbotlist(ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/getBotList/v2'
+
+        header = {
+                'consumerKey': SERVER_CKEY,
+               'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'UTF-8' 
+               }
+
+        payload = {
+                'isActive': True
+                }
+
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        if r.status_code == 200:
+                if r.json()["code"] == 200:
+                        return r.json()
+                else:
+                        return r.json()['code']
+        else:
+                print('error')
+                return r.json()
+#Bot 詳細の取得。成功した場合にはjsonで Bot info を返す
+def getbotinfo(BotNo,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/getBotInfo/v2'
+
+        header = {
+                'consumerKey': SERVER_CKEY,
+               'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'UTF-8' 
+               }
+
+        payload = {
+                'botNo': BotNo
+                }
+
+        r = requests.post(url, headers = header, data=json.dumps(payload))
+        if r.json()["code"] == 200:
+                return r.json()
+        else:
+                print('cannot get botlists')
+                return r.json()['code']
+#Bot の callback URL をセットする
+def setcallbackurl(BotNo, callbackURL,ServerTOKEN):
+        #リクエスト URL の作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/setCallback/v2'
+
+        header = {
+                'consumerKey': SERVER_CKEY,
+               'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json',
+                'charset': 'UTF-8' 
+               }
+
+        payload = {
+                'botNo':BotNo,
+                'callbackUrl':callbackURL,
+                'callbackEventList':["text"]                
+                }
+
+        r = requests.post(url, headers = header, data=json.dumps(payload))
+        if r.json()["code"] == 200:
+                return r.json()
+        else:
+                print('cannot get botlists')
+                return r.json()['code']
+#メッセージ送信。成功した場合にはjsonメッセージを返す。
+def sendmsg(BotNo, TargetId, Message,ServerTOKEN):
+        #リクエストURLの作成
+        url = 'https://apis.worksmobile.com/' + APIKEY + '/message/sendMessage/v2'
+        
+        header = {
+                'consumerKey': SERVER_CKEY,
+                'Authorization': 'Bearer ' + ServerTOKEN,
+                'Content-Type': 'application/json'
+                }
+        
+        payload = {
+                "botNo" : BotNo,
+                "accountId" : TargetId,
+                "content" : {
+                        "type": "text",
+                        "text": Message
+                        }
+                }
+
+        #jsonデータの作成
+        r = requests.post(url, headers = header, data = json.dumps(payload))
+        if r.json()["code"] == 200:
+                return r.json()
+        else:
+                print('cannot send your message.')
+                return r.json()['code']
 
 
-# Flaskアプリ設定
+#TOKEN 取得の例
+#f = open('token.txt','w')
+#tokentext = gettoken(SERVERID,PRIVKEY)
+#f.write(tokentext)
+# ===== ここから Flask サーバー設定 =====
+from flask import Flask
+
 app = Flask(__name__)
 
 @app.route('/')
 def index():
     return "LINE WORKS Bot is running."
 
-@app.route('/callback', methods=['POST'])
-def callback():
-    data = request.json
-    print("受信データ:", data)
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get('PORT', 10000))  # Render が指定するポートを使う
+    app.run(host='0.0.0.0', port=port)
+# ===== ここまで追記 =====
+from flask import Flask, request, jsonify  # ← request を忘れずに！
 
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "LINE WORKS Bot is running."
+
+@app.route('/callback', methods=['POST'])  # ← LINE WORKS からのWebhookを受け取るエンドポイント
+def callback():
+    data = request.json  # POSTされたJSONを取得
+    print("Received data:", data)  # 確認用ログ（Renderのログに出ます）
+
+    # ここでメッセージ本文などを取り出して処理できます
     try:
         content = data['content']
-        user_message = content['text']
-        account_id = data['source']['accountId']
-
-        print("User Message:", user_message)
-
-        if 'お疲れ様' in user_message:
-            sendmsg(BOT_NO, account_id, '今日もお疲れ様でした！', SERVER_TOKEN)
-
+        print("User Message:", content['text'])  # 例：ユーザーが送ったメッセージ本文
     except Exception as e:
-        print("受信メッセージの処理エラー:", e)
+        print("Error parsing message:", e)
 
-    return "OK"
-
-
-if __name__ == '__main__':
-    # 起動時にトークンを取得
-    SERVER_TOKEN = gettoken(SERVERID, PRIVKEY)
-    if not SERVER_TOKEN:
-        print("サーバートークンの取得に失敗しました。")
-        exit(1)
-
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    return "OK"  # LINE WORKSに「正常に受け取ったよ」と返す
+どこか修正する必要ある？
