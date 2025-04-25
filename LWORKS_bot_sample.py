@@ -285,6 +285,5 @@ server_token = gettoken(SERVERID, PRIVKEY)
 
 # ドメイン登録
 response = regbotdomain(BOT_NO, DOMAIN_ID, server_token)
-
 print("✅ ドメイン登録レスポンス:", response.status_code)
 print(response.text)
