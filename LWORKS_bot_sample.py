@@ -237,3 +237,17 @@ def sendmsg(BotNo, TargetId, Message,ServerTOKEN):
 #f = open('token.txt','w')
 #tokentext = gettoken(SERVERID,PRIVKEY)
 #f.write(tokentext)
+# ===== ここから Flask サーバー設定 =====
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "LINE WORKS Bot is running."
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get('PORT', 10000))  # Render が指定するポートを使う
+    app.run(host='0.0.0.0', port=port)
+# ===== ここまで追記 =====
