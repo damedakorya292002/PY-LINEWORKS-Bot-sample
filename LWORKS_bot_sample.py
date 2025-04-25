@@ -296,3 +296,6 @@ response = regbotdomain(BOT_NO, DOMAIN_ID, token)
 
 print("ドメイン登録:", response.status_code)
 print(response.text)
+
+✅ ドメイン登録レスポンス: 200
+{"code":200,"message":"success"}
